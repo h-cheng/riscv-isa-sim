@@ -721,8 +721,10 @@ void sim_t::interactive_until(const std::string& cmd, const std::vector<std::str
   if (args.size() < 3)
     throw trap_interactive();
 
-  if (args.size() == 3)
-    get_core(args[1]); // make sure that argument is a valid core number
+  // If arg <core> is present (i.e., not a mem related command that <addr> is physical),
+  // make sure that argument is a valid core number
+  if (args[0] != "mem" || args.size() != 3)
+    get_core(args[1]);
 
   char *end;
   reg_t val = strtol(args[args.size()-1].c_str(),&end,16);
@@ -732,7 +734,21 @@ void sim_t::interactive_until(const std::string& cmd, const std::vector<std::str
     throw trap_interactive();
 
   // mask bits above max_xlen
-  int max_xlen = procs[strtol(args[1].c_str(),NULL,10)]->get_isa().get_max_xlen();
+  int max_xlen;
+  if (args[0] != "mem" || args.size() != 3)
+    max_xlen = procs[strtol(args[1].c_str(),NULL,10)]->get_isa().get_max_xlen();
+  // for mem related commands without arg <core> (i.e., <addr> is physical),
+  // set max_xlen to the maximum of max_xlen of all processors
+  else
+  {
+    max_xlen = 32;
+    int max_xlen_proc;
+    for(processor_t* proc : procs)
+    {
+      max_xlen_proc = proc->get_isa().get_max_xlen();
+      max_xlen = (max_xlen_proc > max_xlen) ? max_xlen_proc : max_xlen;
+    }
+  }
   if (max_xlen == 32) val &= 0xFFFFFFFF;
 
   std::vector<std::string> args2;
