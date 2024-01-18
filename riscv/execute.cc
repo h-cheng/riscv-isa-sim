@@ -117,11 +117,42 @@ static void commit_log_print_insn(processor_t *p, reg_t pc, insn_t insn)
     }
 
     if (!show_vec && (is_vreg || is_vec)) {
+        
+        // [RVV Functional Coverage] The snippet below is to print FFLAGS, FRM, 
+        // VSTART, VXSAT, VXRM, if it will not be printed from log_reg_write. 
+        // This helps to extract values of RVV relevant CSRs from the commit log.
+        int fflags_addr = 0x1;
+        if(reg.find(((fflags_addr) << 4) | 4) == reg.end()){
+          fprintf(log_file, " c%d_%s ", fflags_addr, csr_name(fflags_addr));
+          commit_log_print_value(log_file, xlen, p->get_state()->fflags->read());
+        }
+        int frm_addr = 0x2;
+        if(reg.find(((frm_addr) << 4) | 4) == reg.end()){
+          fprintf(log_file, " c%d_%s ", frm_addr, csr_name(frm_addr));
+          commit_log_print_value(log_file, xlen, p->get_state()->frm->read());
+        }
+        int vstart_addr = 0x8;
+        if(reg.find(((vstart_addr) << 4) | 4) == reg.end()){
+          fprintf(log_file, " c%d_%s ", vstart_addr, csr_name(vstart_addr));
+          commit_log_print_value(log_file, xlen, p->VU.vstart->read());
+        }
+        int vxsat_addr = 0x9;
+        if(reg.find(((vxsat_addr) << 4) | 4) == reg.end()){
+          fprintf(log_file, " c%d_%s ", vxsat_addr, csr_name(vxsat_addr));
+          commit_log_print_value(log_file, xlen, p->VU.vxsat->read());
+        }
+        int vxrm_addr = 0xa;
+        if(reg.find(((vxrm_addr) << 4) | 4) == reg.end()){
+          fprintf(log_file, " c%d_%s ", vxrm_addr, csr_name(vxrm_addr));
+          commit_log_print_value(log_file, xlen, p->VU.vxrm->read());
+        }
+        // [RVV Functional Coverage] End
+
         fprintf(log_file, " e%ld %s%ld l%ld",
                 (long)p->VU.vsew,
                 p->VU.vflmul < 1 ? "mf" : "m",
                 p->VU.vflmul < 1 ? (long)(1 / p->VU.vflmul) : (long)p->VU.vflmul,
-                (long)p->VU.vl->read());
+                (long)p->VU.vl->read());        
         show_vec = true;
     }
 
